@@ -131,10 +131,16 @@ export default function TrendChart({
 
   const yTicks = compact ? 2 : 4;
   const gridF = Array.from({ length: yTicks + 1 }, (_, i) => i / yTicks);
-  // Label a few x positions, always including first and last.
-  const xLabelAt = new Set<number>([0, points.length - 1]);
+  // Label a few x positions, always including first and last. The last index
+  // is pinned, so any regular label within MIN_GAP of it is dropped —
+  // otherwise two labels overlap and read as one garbled time.
+  const MIN_GAP = 2;
+  const lastIndex = points.length - 1;
+  const xLabelAt = new Set<number>([0, lastIndex]);
   const xEvery = Math.max(1, Math.round(points.length / (compact ? 3 : 5)));
-  for (let i = 0; i < points.length; i += xEvery) xLabelAt.add(i);
+  for (let i = 0; i < points.length; i += xEvery) {
+    if (Math.abs(lastIndex - i) >= MIN_GAP) xLabelAt.add(i);
+  }
 
   function onMove(e: React.MouseEvent<SVGSVGElement>) {
     const rect = svgRef.current?.getBoundingClientRect();

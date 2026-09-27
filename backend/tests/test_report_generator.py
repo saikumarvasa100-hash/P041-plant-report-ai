@@ -17,6 +17,13 @@ from app.services.report_generator import generate_daily_report, generate_plant_
 from app.services.simulator import generate_plant_data
 
 ROOT = Path(__file__).resolve().parents[2]
+# The CLI lives outside backend/ at repo level. It is absent when only the
+# backend package is distributed, so these two tests declare that dependency
+# rather than failing on a missing sibling file.
+CLI = ROOT / "scripts" / "generate_report.py"
+requires_cli = pytest.mark.skipif(
+    not CLI.is_file(), reason="scripts/generate_report.py not present in this distribution"
+)
 CANNED = "# Stubbed Report\n\nStubbed provider body."
 
 SETTINGS = LLMSettings(provider="openai-compatible", api_key="k")
@@ -95,9 +102,10 @@ def _cli_env(stub_server):
     )
 
 
+@requires_cli
 def test_cli_live_stub_report(stub_server):
     proc = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "generate_report.py"),
+        [sys.executable, str(CLI),
          "--machines", "2", "--observations", "8", "--seed", "1"],
         capture_output=True, text=True, env=_cli_env(stub_server), timeout=120,
     )
@@ -107,9 +115,10 @@ def test_cli_live_stub_report(stub_server):
     assert "sk-" not in proc.stdout and "test-key" not in proc.stdout
 
 
+@requires_cli
 def test_cli_save_report_file(stub_server):
     proc = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "generate_report.py"),
+        [sys.executable, str(CLI),
          "--machines", "2", "--observations", "8", "--seed", "1", "--save"],
         capture_output=True, text=True, env=_cli_env(stub_server), timeout=120,
     )
